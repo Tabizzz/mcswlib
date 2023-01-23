@@ -11,8 +11,6 @@ This package can ping a large variety of different Minecraft-Server versions and
     <PackageProjectUrl>https://github.com/Hexxonite/mcswlib</PackageProjectUrl>
     <PackageTags>minecraft server status ping library c#</PackageTags>
     <PackageReleaseNotes>https://github.com/Hexxonite/mcswlib/releases</PackageReleaseNotes>
-    <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Nuget_Hexxonite_Sign.pfx</AssemblyOriginatorKeyFile>
     <ApplicationIcon>mcsw.ico</ApplicationIcon>
   </PropertyGroup>
 

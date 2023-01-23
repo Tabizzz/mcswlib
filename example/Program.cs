@@ -8,9 +8,9 @@ namespace example
 {
     class Program
     {
-        static string TestServer = "mc.server.me";
+	    const string TestServer = "Monarquicraft.com";
 
-        static void Main(string[] args)
+	    static void Main(string[] args)
         {
             Logger.LogLevel = Types.LogLevel.Debug;
 
