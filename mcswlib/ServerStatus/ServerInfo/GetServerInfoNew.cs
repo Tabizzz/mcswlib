@@ -73,22 +73,10 @@ namespace mcswlib.ServerStatus.ServerInfo
                 }
             }
             // parse favicon
-            Bitmap image = null;
+            string image = null;
             if (json.Contains("\"favicon\":\""))
             {
-                try
-                {
-                    var hdr = "data:image/png;base64,";
-                    var imgStr = (string)ping.favicon;
-                    if (!imgStr.StartsWith(hdr)) throw new Exception("Unkown Format");
-                    byte[] imgData = Convert.FromBase64String(imgStr.Substring(hdr.Length));
-                    using (var imgStream = new MemoryStream(imgData, 0, imgData.Length))
-                        image = new Bitmap(imgStream);
-                }
-                catch (Exception ie)
-                {
-                    Logger.WriteLine("Error parsing favicon: " + ie.ToString(), Types.LogLevel.Debug);
-                }
+	            image = (string)ping.favicon;
             }
             // parse MOTD/description
             var desc = "";
@@ -118,7 +106,8 @@ namespace mcswlib.ServerStatus.ServerInfo
             if (string.IsNullOrEmpty(desc))
                 throw new FormatException("Empty description!");
 
-            return new ServerInfoBase(startPing, pingTime.ElapsedMilliseconds, desc, (int)ping.players.max, (int)ping.players.online, (string)ping.version.name, image, sample);
+            return new ServerInfoBase(startPing, pingTime.ElapsedMilliseconds, desc, (int)ping.players.max, (int)ping.players.online, (string)ping.version.name,
+	            image, sample);
         }
 
 

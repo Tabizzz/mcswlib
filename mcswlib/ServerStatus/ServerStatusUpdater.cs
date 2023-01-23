@@ -118,7 +118,6 @@ namespace mcswlib.ServerStatus
             _history.FindAll(o => o.RequestDate < DateTime.Now.Subtract(ClearSpan)).ForEach(d =>
             {
                 _history.Remove(d);
-                d.Dispose();
             });
             GC.Collect();
         }
@@ -128,7 +127,7 @@ namespace mcswlib.ServerStatus
         /// </summary>
         public void Dispose()
         {
-            _history.ForEach(d => d.Dispose());
+            _history.Clear();
         }
     }
 }

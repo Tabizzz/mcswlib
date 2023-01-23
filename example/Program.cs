@@ -16,9 +16,9 @@ namespace example
 
             SinglePing();
 
-            MultiPing();
+            //MultiPing();
 
-            AsyncPing();
+            //AsyncPing();
 
             Console.WriteLine("\r\nPress Enter to quit.");
             Console.ReadLine();
@@ -35,12 +35,6 @@ namespace example
             var res = inst.Updater.Ping();
 
             Console.WriteLine("Result: " + res);
-
-            if(res.HadSuccess && res.FavIcon != null)
-            {
-                res.FavIcon.Save("favico.png");
-                Console.WriteLine("Favicon saved!");
-            }
 
             factory.Dispose();
         }

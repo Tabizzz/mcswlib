@@ -5,7 +5,7 @@ using mcswlib.ServerStatus.Event;
 
 namespace mcswlib.ServerStatus.ServerInfo
 {
-    public class ServerInfoBase : IDisposable
+    public class ServerInfoBase
     {
         /// <summary>
         ///     Creates a new instance of <see cref="ServerInfoBase" /> with specified values
@@ -20,7 +20,7 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <param name="favIco">Server's favicon object if given</param>
         /// <param name="players">Server's online players</param>
         internal ServerInfoBase(DateTime dt, long sp, string motd, int maxPlayers, int playerCount, string version,
-            Bitmap favIco, List<PlayerPayLoad> players)
+            string favIco, List<PlayerPayLoad> players)
         {
             HadSuccess = true;
             RequestDate = dt;
@@ -100,7 +100,7 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <summary>
         ///     The Icon for the Server
         /// </summary>
-        public Bitmap FavIcon { get; }
+        public string FavIcon { get; }
 
         /// <summary>
         ///     String override
@@ -109,15 +109,6 @@ namespace mcswlib.ServerStatus.ServerInfo
         public override string ToString()
         {
             return string.Format($"[Success:{HadSuccess}, Ping:{RequestTime}ms, LasError:{LastError}, Motd:{ServerMotd}, MaxPlayers:{MaxPlayerCount}, CurrentPlayers:{CurrentPlayerCount}, Version:{MinecraftVersion}]");
-        }
-
-        /// <summary>
-        ///     better Dispose of Graphics object explicitly
-        /// </summary>
-        public void Dispose()
-        {
-            if (FavIcon != null)
-                FavIcon.Dispose();
         }
     }
 }
