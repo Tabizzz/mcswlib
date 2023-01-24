@@ -9,8 +9,8 @@ namespace mcswlib.ServerStatus.ServerInfo
 {
     internal abstract class GetServerInfo
     {
-        protected string address;
-        protected int port;
+        protected readonly string Address;
+        protected readonly int Port;
 
         /// <summary>
         ///     Async TCP-Connect Wrapper for Minecraft Server Pings.
@@ -19,8 +19,8 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <param name="por"></param>
         internal GetServerInfo(string addr, int por = 25565)
         {
-            address = addr;
-            port = por;
+            Address = addr;
+            Port = por;
         }
 
         /// <summary>
@@ -36,17 +36,13 @@ namespace mcswlib.ServerStatus.ServerInfo
             sw.Start();
             try
             {
-                using (var client = new TcpClient())
-                {
-                    using (var stream = ConnectWrap(ct, client))
-                    {
-                        return await Get(ct, dt, sw, client, stream);
-                    }
-                }
+	            using var client = new TcpClient();
+	            await using var stream = ConnectWrap(ct, client);
+	            return await Get(ct, dt, sw, client, stream);
             }
             catch(Exception e)
             {
-                return new ServerInfoBase(dt, sw.ElapsedMilliseconds, e);
+                return new(dt, sw.ElapsedMilliseconds, e);
             }
         }
 
@@ -58,7 +54,7 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <returns></returns>
         protected NetworkStream ConnectWrap(CancellationToken ct, TcpClient client)
         {
-            var task = client.ConnectAsync(address, port);
+            var task = client.ConnectAsync(Address, Port, ct);
             while (!task.IsCompleted && !ct.IsCancellationRequested)
             {
                 Debug.WriteLine("Connecting..");

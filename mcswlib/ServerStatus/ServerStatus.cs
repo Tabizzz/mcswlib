@@ -8,24 +8,25 @@ namespace mcswlib.ServerStatus
 {
     public class ServerStatus
     {
-        private EventMessages messages;
+	    readonly EventMessages _messages;
 
-        internal ServerStatus(string label, ServerStatusUpdater basis, EventMessages msg)
+	    // ReSharper disable once NotNullOrRequiredMemberIsNotInitialized
+	    internal ServerStatus(string label, ServerStatusUpdater basis, EventMessages msg)
         {
             Label = label;
             Updater = basis;
             NotifyServer = true;
             NotifyCount = true;
             NotifyNames = true;
-            PlayerList = new List<PlayerPayLoad>();
-            messages = msg;
+            PlayerList = new();
+            _messages = msg;
             ApplyServerInfo(null);
         }
 
         // Identity
 
-        public string Label { get; private set; }
-        public ServerStatusUpdater Updater { get; private set; }
+        public string Label { get; }
+        public ServerStatusUpdater Updater { get; }
 
         // Settings
 
@@ -34,14 +35,15 @@ namespace mcswlib.ServerStatus
         public bool NotifyNames { get; set; }
 
         // Current / Last Status
-
-        public List<PlayerPayLoad> PlayerList { get; private set; }
+ 
+        // ReSharper disable once CollectionNeverQueried.Global
+        public List<PlayerPayLoad> PlayerList { get; }
         public string LastStatusDate { get; private set; }
         public bool IsOnline { get; private set; }
         public int PlayerCount { get; private set; }
         public int MaxPlayerCount { get; private set; }
         public string Version { get; private set; }
-        public string MOTD { get; private set; }
+        public string Motd { get; private set; }
         public string LastError { get; private set; }
 
         /// <summary>
@@ -51,10 +53,11 @@ namespace mcswlib.ServerStatus
         ///     don't usually return the actual/complete player list. Hence, this may
         ///     not work for some cases.
         /// </summary>
-        private readonly Dictionary<string, string> userNames = new Dictionary<string, string>();
-        private readonly Dictionary<string, bool> userStates = new Dictionary<string, bool>();
+        readonly Dictionary<string, string> _userNames = new();
 
-        private ServerInfoBase last = null;
+        readonly Dictionary<string, bool> _userStates = new();
+
+        ServerInfoBase? _last;
 
         /// <summary>
         ///     Will compare the last status with the current one and return event updates.
@@ -64,16 +67,16 @@ namespace mcswlib.ServerStatus
         {
             // event-queue
             var events = new List<EventBase>();
-            var isFirst = last == null;
+            var isFirst = _last == null;
             var current = Updater.GetLatestServerInfo();
             if (current != null)
             {
                 // if first info, or last success was different from this (either went online or went offline) => invoke
-                if (NotifyServer && (isFirst || last.HadSuccess != current.HadSuccess))
+                if (NotifyServer && (isFirst || _last.HadSuccess != current.HadSuccess))
                 {
                     Debug.WriteLine("Server '" + Updater.Address + ":" + Updater.Port + "' status change: " + current.HadSuccess);
                     var errMsg = current.LastError != null ? "Connection Failed: " + current.LastError.GetType().Name : "";
-                    events.Add(new OnlineStatusEvent(messages, current.HadSuccess, current.HadSuccess ? current.ServerMotd : errMsg));
+                    events.Add(new OnlineStatusEvent(_messages, current.HadSuccess, current.HadSuccess ? current.ServerMotd : errMsg));
                 }
 
                 // if first info, or last player count was different (player went online or offline) => invoke
@@ -81,11 +84,11 @@ namespace mcswlib.ServerStatus
                 {
                     var diff = isFirst
                         ? current.CurrentPlayerCount
-                        : current.CurrentPlayerCount - last.CurrentPlayerCount;
+                        : current.CurrentPlayerCount - _last.CurrentPlayerCount;
                     if (diff != 0)
                     {
                         Debug.WriteLine("Server '" + Updater.Address + ":" + Updater.Port + "' count change: " + diff);
-                        events.Add(new PlayerChangeEvent(messages, diff));
+                        events.Add(new PlayerChangeEvent(_messages, diff));
                     }
                 }
 
@@ -98,32 +101,32 @@ namespace mcswlib.ServerStatus
                         if (!onlineIds.Contains(p.Id))
                             onlineIds.Add(p.Id);
                         // register name
-                        userNames[p.Id] = p.Name;
+                        _userNames[p.Id] = p.Name;
                         // if notify and user has state and last state was offline and user is watched, notify change
-                        if (NotifyNames && (!userStates.ContainsKey(p.Id) || !userStates[p.Id]))
-                            events.Add(new PlayerStateEvent(messages, p, true));
+                        if (NotifyNames && (!_userStates.ContainsKey(p.Id) || !_userStates[p.Id]))
+                            events.Add(new PlayerStateEvent(_messages, p, true));
                         // register state or set to true
-                        userStates[p.Id] = true;
+                        _userStates[p.Id] = true;
                     }
 
                 // this needs to be done to avoid ElementChangedException
-                var keys = userStates.Keys.ToArray();
+                var keys = _userStates.Keys.ToArray();
                 // check all states for players who went offline
                 foreach (var k in keys)
                 {
-                    if (!userStates[k] || onlineIds.Contains(k)) continue;
+                    if (!_userStates[k] || onlineIds.Contains(k)) continue;
                     // if user state still true, but he is not in online list => went offline
-                    userStates[k] = false;
+                    _userStates[k] = false;
                     // create payload
-                    var p = new PlayerPayLoad { Id = k, RawName = userNames[k] };
+                    var p = new PlayerPayLoad { Id = k, RawName = _userNames[k] };
                     // notify => invoke
                     if (NotifyNames)
-                        events.Add(new PlayerStateEvent(messages, p, false));
+                        events.Add(new PlayerStateEvent(_messages, p, false));
 
                 }
             }
             // set new last
-            last = current;
+            _last = current;
             ApplyServerInfo(current);
             return events.ToArray();
         }
@@ -133,7 +136,7 @@ namespace mcswlib.ServerStatus
         ///     Will apply the current server-info to the public vars
         /// </summary>
         /// <param name="si"></param>
-        private void ApplyServerInfo(ServerInfoBase si)
+        void ApplyServerInfo(ServerInfoBase? si)
         {
             var nu = si == null;
 
@@ -142,7 +145,7 @@ namespace mcswlib.ServerStatus
             PlayerCount = nu ? 0 : si.CurrentPlayerCount;
             MaxPlayerCount = nu ? 0 : si.MaxPlayerCount;
             Version = nu ? "0.0.0" : si.MinecraftVersion;
-            MOTD = nu || !si.HadSuccess ? "-" : si.ServerMotd;
+            Motd = nu || !si.HadSuccess ? "-" : si.ServerMotd;
             LastError = !nu && si.LastError != null ? si.LastError.GetType().Name : "-";
 
             PlayerList.Clear();

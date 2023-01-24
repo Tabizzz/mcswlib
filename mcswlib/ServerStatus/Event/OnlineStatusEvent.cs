@@ -2,12 +2,13 @@
 {
     public class OnlineStatusEvent : EventBase
     {
-        /// <summary>
-        ///     Online Status of a  Server, given parameters are online bool & statusText msg if offline
-        /// </summary>
-        /// <param name="stat"></param>
-        /// <param name="statusText"></param>
-        internal OnlineStatusEvent(EventMessages msg, bool stat, string statusText = "") : base(msg)
+	    /// <summary>
+	    ///     Online Status of a  Server, given parameters are online bool & statusText msg if offline
+	    /// </summary>
+	    /// <param name="msg"></param>
+	    /// <param name="stat"></param>
+	    /// <param name="statusText"></param>
+	    internal OnlineStatusEvent(EventMessages msg, bool stat, string statusText = "") : base(msg)
         {
             ServerStatus = stat;
             StatusText = statusText;
@@ -19,7 +20,7 @@
 
         public override string ToString()
         {
-            return (ServerStatus ? messages.ServerOnline : messages.ServerOffline).Replace("<text>", StatusText);
+            return (ServerStatus ? Messages.ServerOnline : Messages.ServerOffline).Replace("<text>", StatusText);
         }
     }
 }

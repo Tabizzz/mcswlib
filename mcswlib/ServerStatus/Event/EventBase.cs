@@ -2,17 +2,17 @@
 {
     public abstract class EventBase
     {
-        protected EventMessages messages;
+        protected EventMessages Messages;
 
         internal EventBase(EventMessages msg)
         {
-            messages = msg;
+            Messages = msg;
         }
 
         /// <summary>
         ///     This function needs to be overwritten to return the event-specific message
         /// </summary>
         /// <returns></returns>
-        public override string ToString() { return GetType().FullName; }
+        public override string ToString() { return GetType().FullName!; }
     }
 }

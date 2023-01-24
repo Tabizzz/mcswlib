@@ -2,26 +2,22 @@
 using System.Threading;
 using mcswlib;
 using mcswlib.ServerStatus;
-using mcswlib.ServerStatus.Event;
 
 namespace example
 {
-    class Program
+	internal class Program
     {
 	    const string TestServer = "Monarquicraft.com";
 
-	    static void Main(string[] args)
+	    static void Main()
         {
             Logger.LogLevel = Types.LogLevel.Debug;
 
             SinglePing();
 
-            //MultiPing();
+            MultiPing();
 
-            //AsyncPing();
-
-            Console.WriteLine("\r\nPress Enter to quit.");
-            Console.ReadLine();
+            AsyncPing();
         }
 
         static void SinglePing()
@@ -75,7 +71,7 @@ namespace example
 
             var factory = new ServerStatusFactory();
 
-            factory.ServerChanged += (object sender, EventBase[] e) => {
+            factory.ServerChanged += (sender, e) => {
                 var srv = (ServerStatus)sender;
                 Console.WriteLine("Got new Events for server: " + srv.Label);
                 foreach (var evt in e)

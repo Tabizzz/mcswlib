@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using mcswlib.ServerStatus.Event;
 
 namespace mcswlib.ServerStatus.ServerInfo
@@ -20,7 +19,7 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <param name="favIco">Server's favicon object if given</param>
         /// <param name="players">Server's online players</param>
         internal ServerInfoBase(DateTime dt, long sp, string motd, int maxPlayers, int playerCount, string version,
-            string favIco, List<PlayerPayLoad> players)
+            string? favIco, List<PlayerPayLoad>? players)
         {
             HadSuccess = true;
             RequestDate = dt;
@@ -37,7 +36,9 @@ namespace mcswlib.ServerStatus.ServerInfo
         ///     Creates a new instance of <see cref="ServerInfoBase" /> with specified values
         ///     => failed request
         /// </summary>
+        /// <param name="sp"></param>
         /// <param name="ex">the Last occured Exception when determining Server status</param>
+        /// <param name="dt"></param>
         internal ServerInfoBase(DateTime dt, long sp, Exception ex)
         {
             HadSuccess = false;
@@ -45,6 +46,9 @@ namespace mcswlib.ServerStatus.ServerInfo
             RequestTime = sp;
             LastError = ex;
             MinecraftVersion = "0.0.0";
+            OnlinePlayers = null;
+            FavIcon = null;
+            RawMotd = string.Empty;
         }
 
         /// <summary>
@@ -65,7 +69,7 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <summary>
         ///     Returns the last occured runtime error
         /// </summary>
-        public Exception LastError { get; }
+        public Exception? LastError { get; }
 
         /// <summary>
         ///     Get the raw Message of the day including formatting's and color codes.
@@ -95,12 +99,12 @@ namespace mcswlib.ServerStatus.ServerInfo
         /// <summary>
         ///     Gets the server's Online Players as object List
         /// </summary>
-        public List<PlayerPayLoad> OnlinePlayers { get; }
+        public List<PlayerPayLoad>? OnlinePlayers { get; }
 
         /// <summary>
         ///     The Icon for the Server
         /// </summary>
-        public string FavIcon { get; }
+        public string? FavIcon { get; }
 
         /// <summary>
         ///     String override

@@ -11,9 +11,10 @@ namespace mcswlib
         ///     DateTime Wrapper for Console WriteLine
         /// </summary>
         /// <param name="l"></param>
+        /// <param name="lv"></param>
         public static void WriteLine(string l, LogLevel lv = LogLevel.Normal)
         {
-            if(LogLevel >= lv)  Console.WriteLine($"[{DateTime.Now.ToString("yyyy-MM-ss HH:mm:ss")}] {l}");
+            if(LogLevel >= lv)  Console.WriteLine($"[{DateTime.Now:yyyy-MM-ss HH:mm:ss}] {l}");
         }
     }
 }

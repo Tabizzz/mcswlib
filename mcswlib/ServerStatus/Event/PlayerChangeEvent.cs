@@ -15,7 +15,7 @@ namespace mcswlib.ServerStatus.Event
         public override string ToString()
         {
             var abs = Math.Abs(PlayerDiff);
-            var msg = PlayerDiff > 0 ? messages.CountJoin : messages.CountLeave;
+            var msg = PlayerDiff > 0 ? Messages.CountJoin : Messages.CountLeave;
             msg = msg.Replace("<count>", abs.ToString());
             msg = msg.Replace("<player>", "Player" + (abs > 1 ? "s" : ""));
             return msg;

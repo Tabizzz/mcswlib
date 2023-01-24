@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
@@ -20,22 +20,24 @@ namespace mcswlib.ServerStatus.ServerInfo
         // your "client" protocol version to tell the server 
         // doesn't really matter, server will return its own version independently
         // for detailed protocol version codes see here: https://wiki.vg/Protocol_version_numbers
-        private const int Proto = 47;
-        private const int BufferSize = short.MaxValue;
+        const int Proto = 47;
+
+        const int BufferSize = short.MaxValue;
 
         internal GetServerInfoNew(string addr, int por) : base(addr, por)
         {
 
         }
 
+        [SuppressMessage("ReSharper", "PossibleNullReferenceException")]
         protected override async Task<ServerInfoBase> Get(CancellationToken ct, DateTime startPing, Stopwatch pingTime, TcpClient client, NetworkStream stream)
         {
-            var _offset = 0;
+            var offset = 0;
             var writeBuffer = new List<byte>();
 
             WriteVarInt(writeBuffer, Proto);
-            WriteString(writeBuffer, address);
-            WriteShort(writeBuffer, Convert.ToInt16(port));
+            WriteString(writeBuffer, Address);
+            WriteShort(writeBuffer, Convert.ToInt16(Port));
             WriteVarInt(writeBuffer, 1);
             Flush(ct, writeBuffer, stream, 0);
             // yep, twice.
@@ -47,10 +49,10 @@ namespace mcswlib.ServerStatus.ServerInfo
             stream.Close();
             client.Close();
             // IF an IOException arises here, thie server is probably not a minecraft-one
-            var length = ReadVarInt(ref _offset, readBuffer);
-            var packet = ReadVarInt(ref _offset, readBuffer);
-            var jsonLength = ReadVarInt(ref _offset, readBuffer);
-            var json = ReadString(ref _offset, readBuffer, jsonLength);
+            _ = ReadVarInt(ref offset, readBuffer);
+            _ = ReadVarInt(ref offset, readBuffer);
+            var jsonLength = ReadVarInt(ref offset, readBuffer);
+            var json = ReadString(ref offset, readBuffer, jsonLength);
 
             dynamic ping = JsonConvert.DeserializeObject(json);
 
@@ -69,7 +71,7 @@ namespace mcswlib.ServerStatus.ServerInfo
                 }
                 catch (Exception e)
                 {
-                    Logger.WriteLine("Error when sample processing: " + e.ToString(), Types.LogLevel.Debug);
+                    Logger.WriteLine("Error when sample processing: " + e, Types.LogLevel.Debug);
                 }
             }
             // parse favicon
@@ -88,7 +90,7 @@ namespace mcswlib.ServerStatus.ServerInfo
                 }
                 catch (Exception e)
                 {
-                    Logger.WriteLine("Error description.text: " + e.ToString(), Types.LogLevel.Debug);
+                    Logger.WriteLine("Error description.text: " + e, Types.LogLevel.Debug);
                 }
             }
             if (string.IsNullOrEmpty(desc))
@@ -99,41 +101,41 @@ namespace mcswlib.ServerStatus.ServerInfo
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLine("Error description: " + ex.ToString(), Types.LogLevel.Debug);
+                    Logger.WriteLine("Error description: " + ex, Types.LogLevel.Debug);
                 }
             }
 
             if (string.IsNullOrEmpty(desc))
                 throw new FormatException("Empty description!");
 
-            return new ServerInfoBase(startPing, pingTime.ElapsedMilliseconds, desc, (int)ping.players.max, (int)ping.players.online, (string)ping.version.name,
+            return new(startPing, pingTime.ElapsedMilliseconds, desc, (int)ping.players.max, (int)ping.players.online, (string)ping.version.name,
 	            image, sample);
         }
 
 
         #region request helper methods
 
-        internal static byte ReadByte(ref int _offset, byte[] buffer)
+        internal static byte ReadByte(ref int offset, byte[] buffer)
         {
-            var b = buffer[_offset];
-            _offset += 1;
+            var b = buffer[offset];
+            offset += 1;
             return b;
         }
 
-        internal static byte[] Read(ref int _offset, byte[] buffer, int length)
+        internal static byte[] Read(ref int offset, byte[] buffer, int length)
         {
             var data = new byte[length];
-            Array.Copy(buffer, _offset, data, 0, length);
-            _offset += length;
+            Array.Copy(buffer, offset, data, 0, length);
+            offset += length;
             return data;
         }
 
-        internal static int ReadVarInt(ref int _offset, byte[] buffer)
+        internal static int ReadVarInt(ref int offset, byte[] buffer)
         {
             var value = 0;
             var size = 0;
             int b;
-            while (((b = ReadByte(ref _offset, buffer)) & 0x80) == 0x80)
+            while (((b = ReadByte(ref offset, buffer)) & 0x80) == 0x80)
             {
                 value |= (b & 0x7F) << (size++ * 7);
                 if (size > 5)
@@ -144,9 +146,9 @@ namespace mcswlib.ServerStatus.ServerInfo
             return value | ((b & 0x7F) << (size * 7));
         }
 
-        internal static string ReadString(ref int _offset, byte[] buffer, int length)
+        internal static string ReadString(ref int offset, byte[] buffer, int length)
         {
-            var data = Read(ref _offset, buffer, length);
+            var data = Read(ref offset, buffer, length);
             return Encoding.UTF8.GetString(data);
         }
 

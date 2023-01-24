@@ -1,6 +1,4 @@
-﻿using mcswlib.ServerStatus.Event;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
@@ -32,8 +30,8 @@ namespace mcswlib.ServerStatus.ServerInfo
             stream.Close();
             client.Close();
 
-            return new ServerInfoBase(startPing, pingTime.ElapsedMilliseconds, packetData[3], int.Parse(packetData[5]),
-                int.Parse(packetData[4]), packetData[2], null, new List<PlayerPayLoad>());
+            return new(startPing, pingTime.ElapsedMilliseconds, packetData[3], int.Parse(packetData[5]),
+                int.Parse(packetData[4]), packetData[2], null, new());
         }
     }
 }

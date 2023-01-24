@@ -9,38 +9,37 @@ namespace mcswlib.ServerStatus
 {
     public class ServerStatusFactory : IDisposable
     {
-        private static int internalCount = 0;
+	    static int _InternalCount;
 
         /// <summary>
         ///     Constructor with optional
         /// </summary>
         /// <param name="msg"></param>
-        public ServerStatusFactory(EventMessages msg = null)
+        public ServerStatusFactory(EventMessages? msg = null)
         {
-            if (msg == null) msg = new EventMessages();
-            Messages = msg;
+	        msg ??= new();
+	        Messages = msg;
         }
 
-        private readonly List<ServerStatusUpdater> updaters = new List<ServerStatusUpdater>();
+        readonly List<ServerStatusUpdater> _updaters = new();
 
-        private readonly List<ServerStatus> states = new List<ServerStatus>();
+        readonly List<ServerStatus> _states = new();
 
-        private bool token = false;
+        bool _token;
 
-        private Thread thread;
+        Thread? _thread;
+        
+        public EventMessages Messages { get; }
 
+        public bool AutoUpdating => _thread is { IsAlive: true };
 
-        public EventMessages Messages { get; private set; }
-
-        public bool AutoUpdating => thread != null && thread.IsAlive;
-
-        public ServerStatus[] Entries => states.ToArray();
+        public ServerStatus[] Entries => _states.ToArray();
 
 
         /// <summary>
         ///     NOTE: This event may only be triggered when running in Auto-Update mode!
         /// </summary>
-        public event EventHandler<EventBase[]> ServerChanged;
+        public event EventHandler<EventBase[]>? ServerChanged;
 
         /// <summary>
         ///     Start Auto-updating the servers with given Interval
@@ -49,13 +48,15 @@ namespace mcswlib.ServerStatus
         /// 
         public void StartAutoUpdate(int secInterval = 30)
         {
-            if (secInterval < 0) throw new Exception("Interval must be >= 0");
-            if (ServerChanged.Target == null) throw new Exception("Event-listener must be registered before auto-updating!");
+            if (secInterval < 0) throw new("Interval must be >= 0");
+            if (ServerChanged?.Target == null) throw new("Event-listener must be registered before auto-updating!");
             StopAutoUpdate();
-            token = false;
-            thread = new Thread(() => AutoUpdater(secInterval));
-            thread.Name = "ServerStatusFactoryAutoUpdater_" + internalCount++;
-            thread.Start();
+            _token = false;
+            _thread = new(() => AutoUpdater(secInterval))
+            {
+	            Name = "ServerStatusFactoryAutoUpdater_" + _InternalCount++
+            };
+            _thread.Start();
         }
 
         /// <summary>
@@ -63,12 +64,12 @@ namespace mcswlib.ServerStatus
         /// </summary>
         public void StopAutoUpdate()
         {
-            if (thread != null && thread.IsAlive)
+            if (_thread is { IsAlive: true })
             {
-                token = true;
-                thread.Join();
+                _token = true;
+                _thread.Join();
             }
-            thread = null;
+            _thread = null;
         }
 
         /// <summary>
@@ -76,12 +77,14 @@ namespace mcswlib.ServerStatus
         /// </summary>
         public void PingAll(int timeOut = 30)
         {
-            Parallel.ForEach(updaters, new ParallelOptions { MaxDegreeOfParallelism = 10 }, srv => srv.Ping(timeOut));
+            Parallel.ForEach(_updaters, new()
+	            { MaxDegreeOfParallelism = 10 }, srv => srv.Ping(timeOut));
         }
 
         /// <summary>
         ///     Will either reuse a given ServerStatusBase with same address or create one
         /// </summary>
+        /// <param name="forceNewBase"></param>
         /// <param name="label"></param>
         /// <param name="addr"></param>
         /// <param name="port"></param>
@@ -91,10 +94,10 @@ namespace mcswlib.ServerStatus
             // Get Serverstatusbase or make & add one
             var found = forceNewBase ? null : GetByAddr(addr, port);
             if (found == null)
-                updaters.Add(found = new ServerStatusUpdater() { Address = addr, Port = port });
+                _updaters.Add(found = new() { Address = addr, Port = port });
             // Make & add new status
             var state = new ServerStatus(label, found, Messages);
-            states.Add(state);
+            _states.Add(state);
             return state;
         }
 
@@ -106,15 +109,14 @@ namespace mcswlib.ServerStatus
         /// <returns>Success indicator</returns>
         public bool Destroy(ServerStatus status)
         {
-            if (!states.Contains(status))
+            if (!_states.Contains(status))
                 return false;
             // away with it
-            states.Remove(status);
+            _states.Remove(status);
             // check if the base is still in use and if not remove it
             if (!IsBeingUsed(status.Updater))
             {
-                updaters.Remove(status.Updater);
-                status.Updater.Dispose();
+                _updaters.Remove(status.Updater);
             }
             // done
             return true;
@@ -138,9 +140,9 @@ namespace mcswlib.ServerStatus
         /// <param name="addr"></param>
         /// <param name="port"></param>
         /// <returns></returns>
-        private ServerStatusUpdater GetByAddr(string addr, int port)
+        ServerStatusUpdater? GetByAddr(string addr, int port)
         {
-            return updaters.FirstOrDefault(s => s.Address.ToLower() == addr.ToLower() && s.Port == port);
+            return _updaters.FirstOrDefault(s => s.Address.ToLower() == addr.ToLower() && s.Port == port);
         }
 
         /// <summary>
@@ -148,24 +150,24 @@ namespace mcswlib.ServerStatus
         /// </summary>
         /// <param name="ssb"></param>
         /// <returns></returns>
-        private bool IsBeingUsed(ServerStatusUpdater ssb)
+        bool IsBeingUsed(ServerStatusUpdater ssb)
         {
-            return states.FindAll(s => ssb.Equals(s.Updater)).Count() > 1;
+            return _states.FindAll(s => ssb.Equals(s.Updater)).Count > 1;
         }
 
         /// <summary>
         ///     Will run to repeatedly ping all servers in a seperate thread.
         /// </summary>
         /// <param name="secInterval"></param>
-        private void AutoUpdater(int secInterval)
+        void AutoUpdater(int secInterval)
         {
-            while (!token)
+            while (!_token)
             {
                 PingAll();
-                states.ForEach(ss =>
+                _states.ForEach(ss =>
                 {
                     var evts = ss.Update();
-                    if (evts.Length > 0) ServerChanged(ss, evts);
+                    if (evts.Length > 0 && ServerChanged is not null) ServerChanged(ss, evts);
                 });
                 Thread.Sleep(secInterval * 1000);
             }
@@ -177,7 +179,6 @@ namespace mcswlib.ServerStatus
         public void Dispose()
         {
             StopAutoUpdate();
-            updaters.ForEach(ssb => ssb.Dispose());
         }
     }
 }

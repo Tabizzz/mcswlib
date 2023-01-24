@@ -7,18 +7,21 @@ using mcswlib.ServerStatus.ServerInfo;
 
 namespace mcswlib.ServerStatus
 {
-    public class ServerStatusUpdater : IDisposable
+    public class ServerStatusUpdater
     {
-        internal ServerStatusUpdater() { }
+	    internal ServerStatusUpdater()
+	    {
+		    Address = string.Empty;
+	    }
 
         // the time over which server infos are held in memory...
-        public static TimeSpan ClearSpan = new TimeSpan(0, 2, 0);
+        public static TimeSpan ClearSpan = new(0, 1, 0);
 
         // contains the received Server-Infos.
-        private readonly List<ServerInfoBase> _history = new List<ServerInfoBase>();
+        readonly List<ServerInfoBase> _history = new();
 
-        public string Address { get; set; }
-        public int Port { get; set; }
+        public string Address { get; init; }
+        public int Port { get; init; }
 
         public ServerInfoBase[] History => _history.ToArray();
 
@@ -27,28 +30,25 @@ namespace mcswlib.ServerStatus
         ///     This method will ping the server to request infos.
         ///     This is done in context of a task and 30 second timeout
         /// </summary>
-        public ServerInfoBase Ping(int timeOut = 30)
+        public ServerInfoBase? Ping(int timeOut = 30)
         {
             try
             {
-                using (var tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeOut)))
-                {
-                    var token = tokenSource.Token;
-                    var task = Task.Run(() => Ping(token), token);
-                    task.Wait(token);
-                    return task.Result;
-                }
+	            using var tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeOut));
+	            var token = tokenSource.Token;
+	            var task = Task.Run(() => Ping(token), token);
+	            task.Wait(token);
+	            return task.Result;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Logger.WriteLine("Ping Timeout? [" + Address + ":" + Port + "]");
-                _history.Add(new ServerInfoBase(DateTime.Now.Subtract(TimeSpan.FromSeconds(timeOut)), timeOut * 1000, new TimeoutException()));
+                _history.Add(new(DateTime.Now.Subtract(TimeSpan.FromSeconds(timeOut)), timeOut * 1000, new TimeoutException()));
             }
             return null;
         }
-
-
-        private ServerInfoBase Ping(CancellationToken ct)
+        
+        ServerInfoBase? Ping(CancellationToken ct)
         {
             var srv = "[" + Address + ":" + Port + "]";
             Logger.WriteLine("Pinging server " + srv);
@@ -71,7 +71,7 @@ namespace mcswlib.ServerStatus
             }
             catch (Exception ex)
             {
-                Logger.WriteLine("Fatal Error when Pinging... " + ex.ToString(), Types.LogLevel.Error);
+                Logger.WriteLine("Fatal Error when Pinging... " + ex, Types.LogLevel.Error);
             }
             // cleanup, done
             ClearMem();
@@ -83,7 +83,7 @@ namespace mcswlib.ServerStatus
         /// </summary>
         /// <param name="successful">filter for the last successfull</param>
         /// <returns></returns>
-        public ServerInfoBase GetLatestServerInfo(bool successful = false)
+        public ServerInfoBase? GetLatestServerInfo(bool successful = false)
         {
             var tmpList = new List<ServerInfoBase>();
             tmpList.AddRange(successful ? _history.FindAll(o => o.HadSuccess) : _history);
@@ -97,22 +97,21 @@ namespace mcswlib.ServerStatus
         ///     it is run as task to make it cancelable
         /// </summary>
         /// <param name="method"></param>
+        /// <param name="ct"></param>
         /// <returns></returns>
-        private ServerInfoBase GetMethod(int method, CancellationToken ct)
+        ServerInfoBase GetMethod(int method, CancellationToken ct)
         {
-            switch (method)
-            {
-                case 1:
-                    return new GetServerInfoOld(Address, Port).DoAsync(ct).Result;
-                default:
-                    return new GetServerInfoNew(Address, Port).DoAsync(ct).Result;
-            }
+	        return method switch
+	        {
+		        1 => new GetServerInfoOld(Address, Port).DoAsync(ct).Result,
+		        _ => new GetServerInfoNew(Address, Port).DoAsync(ct).Result
+	        };
         }
 
         /// <summary>
         ///     Remove all objects of which the Timestamp exceeds the Clearspan and run GC.
         /// </summary>
-        private void ClearMem()
+        void ClearMem()
         {
             // TODO TEST
             _history.FindAll(o => o.RequestDate < DateTime.Now.Subtract(ClearSpan)).ForEach(d =>
@@ -120,14 +119,6 @@ namespace mcswlib.ServerStatus
                 _history.Remove(d);
             });
             GC.Collect();
-        }
-
-        /// <summary>
-        ///     Dispose all gathered elements explicitely
-        /// </summary>
-        public void Dispose()
-        {
-            _history.Clear();
         }
     }
 }

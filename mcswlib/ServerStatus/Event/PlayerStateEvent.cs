@@ -13,7 +13,7 @@
 
         public override string ToString()
         {
-            return (Online ? messages.NameJoin : messages.NameLeave).Replace("<name>", Player.Name);
+            return (Online ? Messages.NameJoin : Messages.NameLeave).Replace("<name>", Player.Name);
         }
     }
 }
