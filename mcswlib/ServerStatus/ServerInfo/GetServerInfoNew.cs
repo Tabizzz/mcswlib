@@ -44,7 +44,13 @@ internal class GetServerInfoNew : GetServerInfo
 		Flush(ct, writeBuffer, stream, 0);
 
 		var readBuffer = new byte[BufferSize];
-		await stream.ReadAsync(readBuffer, 0, readBuffer.Length, ct);
+		var readSize = -1;
+		var bytesRead = 0;
+		while (readSize != 0)
+		{
+			readSize = await stream.ReadAsync(readBuffer.AsMemory(bytesRead, readBuffer.Length - bytesRead), ct);
+			bytesRead += readSize;
+		}
 		// done
 		stream.Close();
 		client.Close();
