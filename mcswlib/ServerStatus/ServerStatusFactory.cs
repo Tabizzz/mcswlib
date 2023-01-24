@@ -77,9 +77,14 @@ public class ServerStatusFactory : IDisposable
 	/// <summary>
 	///     Ping & update all the servers and groups
 	/// </summary>
-	public Task PingAll(int timeOut = 30)
+	public async Task PingAll(int timeOut = 30)
 	{
-		return Task.WhenAll(_updaters.Select(u => u.Ping(timeOut)));
+		if (_updaters.Count <= 0)
+			return;
+
+		foreach (var batch in  _updaters.Batch(5))
+			await Task.WhenAll(batch.Select(u => u.Ping(timeOut)));
+
 	}
 
 	/// <summary>

@@ -28,7 +28,7 @@ internal class Program
 
 		var inst = factory.Make(TestServer);
 
-		var res = inst.Updater.Ping();
+		var res = inst.Updater.Ping().Result;
 
 		Console.WriteLine("Result: " + res);
 
@@ -51,7 +51,7 @@ internal class Program
 
 		Console.WriteLine("Compare: " + a.Updater.Equals(b.Updater));
 
-		factory.PingAll(5);
+		factory.PingAll(5).Wait();
 
 		foreach (var srv in factory.Entries)
 		{
@@ -73,16 +73,16 @@ internal class Program
 
 		factory.ServerChanged += (sender, e) => {
 			var srv = (ServerStatus)sender;
-			Console.WriteLine("Got new Events for server: " + srv.Label);
+			Console.WriteLine("Got new Events for server: " + srv?.Label);
 			foreach (var evt in e)
 				Console.WriteLine(evt);
 		};
 
 		factory.Make(TestServer, 25565, false, "One");
 
-		factory.StartAutoUpdate();
+		factory.StartAutoUpdate(10);
 
-		var cntDwn = 30;
+		var cntDwn = 5;
 		while(cntDwn-- >= 0)
 		{
 			Console.WriteLine("Waiting " + (cntDwn * 10) + " seconds for something to happen ...");

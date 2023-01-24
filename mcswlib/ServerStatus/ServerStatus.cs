@@ -17,7 +17,6 @@ public class ServerStatus
 		Updater = basis;
 		NotifyServer = true;
 		NotifyCount = true;
-		NotifyNames = true;
 		PlayerList = new();
 		_messages = msg;
 		ApplyServerInfo(null);
