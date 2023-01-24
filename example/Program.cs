@@ -3,93 +3,92 @@ using System.Threading;
 using mcswlib;
 using mcswlib.ServerStatus;
 
-namespace example
+namespace example;
+
+internal class Program
 {
-	internal class Program
-    {
-	    const string TestServer = "Monarquicraft.com";
+	const string TestServer = "Monarquicraft.com";
 
-	    static void Main()
-        {
-            Logger.LogLevel = Types.LogLevel.Debug;
+	static void Main()
+	{
+		Logger.LogLevel = Types.LogLevel.Debug;
 
-            SinglePing();
+		SinglePing();
 
-            MultiPing();
+		MultiPing();
 
-            AsyncPing();
-        }
+		AsyncPing();
+	}
 
-        static void SinglePing()
-        {
-            Console.WriteLine("\r\nSinglePing");
+	static void SinglePing()
+	{
+		Console.WriteLine("\r\nSinglePing");
 
-            var factory = new ServerStatusFactory();
+		var factory = new ServerStatusFactory();
 
-            var inst = factory.Make(TestServer);
+		var inst = factory.Make(TestServer);
 
-            var res = inst.Updater.Ping();
+		var res = inst.Updater.Ping();
 
-            Console.WriteLine("Result: " + res);
+		Console.WriteLine("Result: " + res);
 
-            factory.Dispose();
-        }
+		factory.Dispose();
+	}
 
-        static void MultiPing()
-        {
-            Console.WriteLine("\r\nMultiPing");
+	static void MultiPing()
+	{
+		Console.WriteLine("\r\nMultiPing");
 
-            var factory = new ServerStatusFactory();
-            // create first instance
-            factory.Make(TestServer, 25565, false, "One");
-            // create second instance (force new)
-            factory.Make(TestServer, 25565, true, "Two");
+		var factory = new ServerStatusFactory();
+		// create first instance
+		factory.Make(TestServer, 25565, false, "One");
+		// create second instance (force new)
+		factory.Make(TestServer, 25565, true, "Two");
 
-            // create two wrong instances with the same base
-            var a = factory.Make(TestServer, 25566, false, "Three");
-            var b = factory.Make(TestServer, 25566, false, "Four");
+		// create two wrong instances with the same base
+		var a = factory.Make(TestServer, 25566, false, "Three");
+		var b = factory.Make(TestServer, 25566, false, "Four");
 
-            Console.WriteLine("Compare: " + a.Updater.Equals(b.Updater));
+		Console.WriteLine("Compare: " + a.Updater.Equals(b.Updater));
 
-            factory.PingAll(5);
+		factory.PingAll(5);
 
-            foreach (var srv in factory.Entries)
-            {
-                var events = srv.Update();
-                foreach (var evt in events)
-                {
-                    Console.WriteLine($"Server {srv.Label} Event:\r\n{evt}");
-                }
-            }
+		foreach (var srv in factory.Entries)
+		{
+			var events = srv.Update();
+			foreach (var evt in events)
+			{
+				Console.WriteLine($"Server {srv.Label} Event:\r\n{evt}");
+			}
+		}
 
-            factory.Dispose();
-        }
+		factory.Dispose();
+	}
 
-        static void AsyncPing()
-        {
-            Console.WriteLine("\r\nAsyncPing");
+	static void AsyncPing()
+	{
+		Console.WriteLine("\r\nAsyncPing");
 
-            var factory = new ServerStatusFactory();
+		var factory = new ServerStatusFactory();
 
-            factory.ServerChanged += (sender, e) => {
-                var srv = (ServerStatus)sender;
-                Console.WriteLine("Got new Events for server: " + srv.Label);
-                foreach (var evt in e)
-                    Console.WriteLine(evt);
-            };
+		factory.ServerChanged += (sender, e) => {
+			var srv = (ServerStatus)sender;
+			Console.WriteLine("Got new Events for server: " + srv.Label);
+			foreach (var evt in e)
+				Console.WriteLine(evt);
+		};
 
-            factory.Make(TestServer, 25565, false, "One");
+		factory.Make(TestServer, 25565, false, "One");
 
-            factory.StartAutoUpdate();
+		factory.StartAutoUpdate();
 
-            var cntDwn = 30;
-            while(cntDwn-- >= 0)
-            {
-                Console.WriteLine("Waiting " + (cntDwn * 10) + " seconds for something to happen ...");
-                Thread.Sleep(10000);
-            }
+		var cntDwn = 30;
+		while(cntDwn-- >= 0)
+		{
+			Console.WriteLine("Waiting " + (cntDwn * 10) + " seconds for something to happen ...");
+			Thread.Sleep(10000);
+		}
 
-            factory.Dispose();
-        }
-    }
+		factory.Dispose();
+	}
 }
