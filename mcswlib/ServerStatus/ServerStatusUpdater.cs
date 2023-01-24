@@ -30,15 +30,12 @@ public class ServerStatusUpdater
 	///     This method will ping the server to request infos.
 	///     This is done in context of a task and 30 second timeout
 	/// </summary>
-	public ServerInfoBase? Ping(int timeOut = 30)
+	public async Task<ServerInfoBase?> Ping(int timeOut = 30)
 	{
 		try
 		{
 			using var tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeOut));
-			var token = tokenSource.Token;
-			var task = Task.Run(() => Ping(token), token);
-			task.Wait(token);
-			return task.Result;
+			return await Ping(tokenSource.Token);
 		}
 		catch (Exception)
 		{
@@ -48,7 +45,7 @@ public class ServerStatusUpdater
 		return null;
 	}
         
-	ServerInfoBase? Ping(CancellationToken ct)
+	async Task<ServerInfoBase?> Ping(CancellationToken ct)
 	{
 		var srv = "[" + Address + ":" + Port + "]";
 		Logger.WriteLine("Pinging server " + srv);
@@ -58,7 +55,7 @@ public class ServerStatusUpdater
 		{
 			// current server-info object
 			for (var i = 0; i < 2; i++)
-				if ((current = GetMethod(i, ct)).HadSuccess || ct.IsCancellationRequested)
+				if ((current = await GetMethod(i, ct)).HadSuccess || ct.IsCancellationRequested)
 					break;
 
 			// if the result is null, nothing to do here
@@ -99,12 +96,12 @@ public class ServerStatusUpdater
 	/// <param name="method"></param>
 	/// <param name="ct"></param>
 	/// <returns></returns>
-	ServerInfoBase GetMethod(int method, CancellationToken ct)
+	async Task<ServerInfoBase> GetMethod(int method, CancellationToken ct)
 	{
 		return method switch
 		{
-			1 => new GetServerInfoOld(Address, Port).DoAsync(ct).Result,
-			_ => new GetServerInfoNew(Address, Port).DoAsync(ct).Result
+			1 => await new GetServerInfoOld(Address, Port).DoAsync(ct),
+			_ => await new GetServerInfoNew(Address, Port).DoAsync(ct)
 		};
 	}
 

@@ -20,7 +20,7 @@ internal class GetServerInfoOld : GetServerInfo
 
 	protected override async Task<ServerInfoBase> Get(CancellationToken ct, DateTime startPing, Stopwatch pingTime, TcpClient client, NetworkStream stream)
 	{
-		await stream.WriteAsync(new byte[] { 0xFE, 0x01 }, 0, 2);
+		await stream.WriteAsync(new byte[] { 0xFE, 0x01 }, 0, 2, ct);
 		var buffer = new byte[2048];
 		var br = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
 		if (buffer[0] != 0xFF) throw new InvalidDataException("Received invalid packet");

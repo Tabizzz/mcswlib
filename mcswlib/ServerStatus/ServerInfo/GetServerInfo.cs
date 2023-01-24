@@ -37,7 +37,7 @@ internal abstract class GetServerInfo
 		try
 		{
 			using var client = new TcpClient();
-			await using var stream = ConnectWrap(ct, client);
+			await using var stream = await ConnectWrap(ct, client);
 			return await Get(ct, dt, sw, client, stream);
 		}
 		catch(Exception e)
@@ -52,13 +52,13 @@ internal abstract class GetServerInfo
 	/// <param name="ct"></param>
 	/// <param name="client"></param>
 	/// <returns></returns>
-	protected NetworkStream ConnectWrap(CancellationToken ct, TcpClient client)
+	protected async Task<NetworkStream> ConnectWrap(CancellationToken ct, TcpClient client)
 	{
 		var task = client.ConnectAsync(Address, Port, ct);
 		while (!task.IsCompleted && !ct.IsCancellationRequested)
 		{
 			Debug.WriteLine("Connecting..");
-			Task.Delay(10).Wait();
+			await Task.Delay(10, ct).ConfigureAwait(true);
 		}
 		if (!client.Connected)
 			throw new EndOfStreamException();

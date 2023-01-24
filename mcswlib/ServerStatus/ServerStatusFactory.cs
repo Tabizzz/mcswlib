@@ -9,7 +9,6 @@ namespace mcswlib.ServerStatus;
 
 public class ServerStatusFactory : IDisposable
 {
-	static int _InternalCount;
 
 	/// <summary>
 	///     Constructor with optional
@@ -25,13 +24,13 @@ public class ServerStatusFactory : IDisposable
 
 	readonly List<ServerStatus> _states = new();
 
-	bool _token;
+	CancellationTokenSource? _token;
 
-	Thread? _thread;
+	Task? _updateTask;
         
 	public EventMessages Messages { get; }
 
-	public bool AutoUpdating => _thread is { IsAlive: true };
+	public bool AutoUpdating => _updateTask is { IsCompleted: false };
 
 	public ServerStatus[] Entries => _states.ToArray();
 
@@ -51,12 +50,8 @@ public class ServerStatusFactory : IDisposable
 		if (secInterval < 0) throw new("Interval must be >= 0");
 		if (ServerChanged?.Target == null) throw new("Event-listener must be registered before auto-updating!");
 		StopAutoUpdate();
-		_token = false;
-		_thread = new(() => AutoUpdater(secInterval))
-		{
-			Name = "ServerStatusFactoryAutoUpdater_" + _InternalCount++
-		};
-		_thread.Start();
+		_token = new();
+		_updateTask = AutoUpdater(secInterval, _token.Token);
 	}
 
 	/// <summary>
@@ -64,21 +59,27 @@ public class ServerStatusFactory : IDisposable
 	/// </summary>
 	public void StopAutoUpdate()
 	{
-		if (_thread is { IsAlive: true })
+		if (AutoUpdating)
 		{
-			_token = true;
-			_thread.Join();
+			_token?.Cancel();
+			try
+			{
+				_updateTask?.Wait();
+			}
+			catch (Exception)
+			{
+				// ignored
+			}
 		}
-		_thread = null;
+		_updateTask = null;
 	}
 
 	/// <summary>
 	///     Ping & update all the servers and groups
 	/// </summary>
-	public void PingAll(int timeOut = 30)
+	public Task PingAll(int timeOut = 30)
 	{
-		Parallel.ForEach(_updaters, new()
-			{ MaxDegreeOfParallelism = 10 }, srv => srv.Ping(timeOut));
+		return Task.WhenAll(_updaters.Select(u => u.Ping(timeOut)));
 	}
 
 	/// <summary>
@@ -159,17 +160,18 @@ public class ServerStatusFactory : IDisposable
 	///     Will run to repeatedly ping all servers in a seperate thread.
 	/// </summary>
 	/// <param name="secInterval"></param>
-	void AutoUpdater(int secInterval)
+	/// <param name="token"></param>
+	async Task AutoUpdater(int secInterval, CancellationToken token)
 	{
-		while (!_token)
+		while (!token.IsCancellationRequested)
 		{
-			PingAll();
+			await PingAll();
 			_states.ForEach(ss =>
 			{
 				var evts = ss.Update();
 				if (evts.Length > 0 && ServerChanged is not null) ServerChanged(ss, evts);
 			});
-			Thread.Sleep(secInterval * 1000);
+			await Task.Delay(secInterval * 1000, token);
 		}
 	}
 

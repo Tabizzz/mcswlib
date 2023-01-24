@@ -32,9 +32,9 @@ internal class GetServerInfoNew : GetServerInfo
 	[SuppressMessage("ReSharper", "PossibleNullReferenceException")]
 	protected override async Task<ServerInfoBase> Get(CancellationToken ct, DateTime startPing, Stopwatch pingTime, TcpClient client, NetworkStream stream)
 	{
+		pingTime.Restart();
 		var offset = 0;
 		var writeBuffer = new List<byte>();
-
 		WriteVarInt(writeBuffer, Proto);
 		WriteString(writeBuffer, Address);
 		WriteShort(writeBuffer, Convert.ToInt16(Port));
@@ -54,6 +54,7 @@ internal class GetServerInfoNew : GetServerInfo
 		// done
 		stream.Close();
 		client.Close();
+		pingTime.Stop();
 		// IF an IOException arises here, thie server is probably not a minecraft-one
 		_ = ReadVarInt(ref offset, readBuffer);
 		_ = ReadVarInt(ref offset, readBuffer);
@@ -61,7 +62,6 @@ internal class GetServerInfoNew : GetServerInfo
 		var json = ReadString(ref offset, readBuffer, jsonLength);
 
 		dynamic ping = JsonConvert.DeserializeObject(json);
-
 		// parse player sample
 		var sample = new List<PlayerPayLoad>();
 		if (json.Contains("\"sample\":["))
@@ -204,9 +204,9 @@ internal class GetServerInfoNew : GetServerInfo
 		var bufferLength = buffer.ToArray();
 		buffer.Clear();
 
-		await stream.WriteAsync(bufferLength, 0, bufferLength.Length, ct);
-		await stream.WriteAsync(packetData, 0, packetData.Length, ct);
-		await stream.WriteAsync(buff, 0, buff.Length, ct);
+		await stream.WriteAsync(bufferLength, ct);
+		await stream.WriteAsync(packetData, ct);
+		await stream.WriteAsync(buff, ct);
 	}
 
 	#endregion
