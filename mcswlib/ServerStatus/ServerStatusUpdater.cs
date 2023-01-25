@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,53 +19,51 @@ public class ServerStatusUpdater
 	public static TimeSpan ClearSpan = new(0, 1, 0);
 
 	// contains the received Server-Infos.
-	readonly List<ServerInfoBase> _history = new();
+	readonly List<ServerInfoResult> _history = new();
 
 	public string Address { get; init; }
 	public int Port { get; init; }
 
-	public ServerInfoBase[] History => _history.ToArray();
-
+	public ServerInfoResult[] History => _history.ToArray();
 
 	/// <summary>
 	///     This method will ping the server to request infos.
 	///     This is done in context of a task and 30 second timeout
 	/// </summary>
-	public async Task<ServerInfoBase?> Ping(int timeOut = 30)
+	public async Task Ping(int timeOut = 30)
 	{
 		try
 		{
 			using var tokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(timeOut));
-			return await Ping(tokenSource.Token);
+			await Ping(tokenSource.Token);
 		}
 		catch (Exception)
 		{
 			Logger.WriteLine("Ping Timeout? [" + Address + ":" + Port + "]");
-			_history.Add(new(DateTime.Now.Subtract(TimeSpan.FromSeconds(timeOut)), timeOut * 1000, new TimeoutException()));
+			var toAdd = new ServerInfoBase(DateTime.Now.Subtract(TimeSpan.FromSeconds(timeOut)), timeOut * 1000, new TimeoutException());
+			_history.Add(new() { New = toAdd, Old = toAdd });
 		}
-		return null;
 	}
         
-	async Task<ServerInfoBase?> Ping(CancellationToken ct)
+	[SuppressMessage("ReSharper", "InconsistentNaming")]
+	async Task Ping(CancellationToken ct)
 	{
 		var srv = "[" + Address + ":" + Port + "]";
 		Logger.WriteLine("Pinging server " + srv);
-		ServerInfoBase current = null;
+
 		// safety-wrapper
 		try
 		{
 			// current server-info object
-			for (var i = 0; i < 2; i++)
-				if ((current = await GetMethod(i, ct)).HadSuccess || ct.IsCancellationRequested)
-					break;
-
+			var OldTask = GetMethod(false, ct);
+			var NewTask = GetMethod(true, ct);
+			await Task.WhenAll(OldTask, NewTask);
+			var Old = OldTask.Result;
+			var New = NewTask.Result;
+			
 			// if the result is null, nothing to do here
-			if (current != null)
-			{
-				Logger.WriteLine("Ping result " + srv + " is " + current.HadSuccess, Types.LogLevel.Debug);
-				_history.Add(current);
-			}
-			else Logger.WriteLine("Ping result null " + srv, Types.LogLevel.Debug);
+			Logger.WriteLine("Ping result " + srv + " is " + (New.HadSuccess || Old.HadSuccess), Types.LogLevel.Debug);
+			_history.Add(new(){New = New, Old = Old});
 		}
 		catch (Exception ex)
 		{
@@ -72,7 +71,6 @@ public class ServerStatusUpdater
 		}
 		// cleanup, done
 		ClearMem();
-		return current;
 	}
 
 	/// <summary>
@@ -80,9 +78,9 @@ public class ServerStatusUpdater
 	/// </summary>
 	/// <param name="successful">filter for the last successfull</param>
 	/// <returns></returns>
-	public ServerInfoBase? GetLatestServerInfo(bool successful = false)
+	public ServerInfoResult? GetLatestServerInfo(bool successful = false)
 	{
-		var tmpList = new List<ServerInfoBase>();
+		var tmpList = new List<ServerInfoResult>();
 		tmpList.AddRange(successful ? _history.FindAll(o => o.HadSuccess) : _history);
 		return tmpList.Count > 0
 			? tmpList.OrderByDescending(ob => ob.RequestDate.AddMilliseconds(ob.RequestTime)).First()
@@ -93,16 +91,12 @@ public class ServerStatusUpdater
 	///     This method will request the server infos for the given version/method.
 	///     it is run as task to make it cancelable
 	/// </summary>
-	/// <param name="method"></param>
+	/// <param name="newmethod"></param>
 	/// <param name="ct"></param>
 	/// <returns></returns>
-	async Task<ServerInfoBase> GetMethod(int method, CancellationToken ct)
+	async Task<ServerInfoBase> GetMethod(bool newmethod, CancellationToken ct)
 	{
-		return method switch
-		{
-			1 => await new GetServerInfoOld(Address, Port).DoAsync(ct),
-			_ => await new GetServerInfoNew(Address, Port).DoAsync(ct)
-		};
+		return newmethod ? await new GetServerInfoNew(Address, Port).DoAsync(ct) : await new GetServerInfoOld(Address, Port).DoAsync(ct);
 	}
 
 	/// <summary>

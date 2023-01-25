@@ -56,7 +56,7 @@ public class ServerStatus
 
 	readonly Dictionary<string, bool> _userStates = new();
 
-	ServerInfoBase? _last;
+	ServerInfoResult? _last;
 
 	/// <summary>
 	///     Will compare the last status with the current one and return event updates.
@@ -135,7 +135,7 @@ public class ServerStatus
 	///     Will apply the current server-info to the public vars
 	/// </summary>
 	/// <param name="si"></param>
-	void ApplyServerInfo(ServerInfoBase? si)
+	void ApplyServerInfo(ServerInfoResult? si)
 	{
 		var nu = si == null;
 

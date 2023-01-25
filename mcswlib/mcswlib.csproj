@@ -12,6 +12,7 @@ This package can ping a large variety of different Minecraft-Server versions and
     <PackageTags>minecraft server status ping library c#</PackageTags>
     <PackageReleaseNotes>https://github.com/Hexxonite/mcswlib/releases</PackageReleaseNotes>
     <ApplicationIcon>mcsw.ico</ApplicationIcon>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

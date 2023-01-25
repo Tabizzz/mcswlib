@@ -28,8 +28,9 @@ internal class Program
 
 		var inst = factory.Make(TestServer);
 
-		var res = inst.Updater.Ping().Result;
-
+		 inst.Updater.Ping().Wait();
+		 var res = inst.Updater.GetLatestServerInfo(true);
+		 
 		Console.WriteLine("Result: " + res);
 
 		factory.Dispose();

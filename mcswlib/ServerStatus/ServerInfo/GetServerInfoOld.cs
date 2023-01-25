@@ -20,6 +20,7 @@ internal class GetServerInfoOld : GetServerInfo
 
 	protected override async Task<ServerInfoBase> Get(CancellationToken ct, DateTime startPing, Stopwatch pingTime, TcpClient client, NetworkStream stream)
 	{
+		pingTime.Restart();
 		await stream.WriteAsync(new byte[] { 0xFE, 0x01 }, 0, 2, ct);
 		var buffer = new byte[2048];
 		var br = await stream.ReadAsync(buffer, 0, buffer.Length, ct);
@@ -31,6 +32,6 @@ internal class GetServerInfoOld : GetServerInfo
 		client.Close();
 
 		return new(startPing, pingTime.ElapsedMilliseconds, packetData[3], int.Parse(packetData[5]),
-			int.Parse(packetData[4]), packetData[2], null, new());
+			int.Parse(packetData[4]), packetData[2], null, null);
 	}
 }

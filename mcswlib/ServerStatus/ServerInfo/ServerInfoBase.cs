@@ -31,7 +31,7 @@ public class ServerInfoBase
 		FavIcon = favIco;
 		OnlinePlayers = players;
 	}
-
+ 
 	/// <summary>
 	///     Creates a new instance of <see cref="ServerInfoBase" /> with specified values
 	///     => failed request
@@ -74,7 +74,7 @@ public class ServerInfoBase
 	/// <summary>
 	///     Get the raw Message of the day including formatting's and color codes.
 	/// </summary>
-	public string RawMotd { get; private set; }
+	public string RawMotd { get; }
 
 	/// <summary>
 	///     Gets the server's MOTD as Text
