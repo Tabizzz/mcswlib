@@ -26,7 +26,7 @@ public static class Types
 			"§2", "§a", "§b", "§3",
 			"§1", "§9", "§d", "§5",
 			"§f", "§7", "§8", "§0",
-			"§l", "§m", "§n", "§o", "§r"
+			"§l", "§m", "§n", "§o", "§r", "§x"
 		};
 		foreach (var t in l) s = s.Replace(t, "");
 		return s;

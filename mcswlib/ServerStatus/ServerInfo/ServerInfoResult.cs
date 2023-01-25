@@ -75,6 +75,6 @@ public class ServerInfoResult
 	
 	public override string ToString()
 	{
-		return string.Format($"[Success:{HadSuccess}, Ping:{Ping}ms, LasError:{New.LastError}, Motd:{Old.RawMotd}, MaxPlayers:{New.MaxPlayerCount}, CurrentPlayers:{New.CurrentPlayerCount}, Version:{Old.MinecraftVersion}]");
+		return string.Format($"[Success:{HadSuccess}, Ping:{Ping}ms, LasError:{New.LastError}, Motd:{Old.ServerMotd}, MaxPlayers:{New.MaxPlayerCount}, CurrentPlayers:{New.CurrentPlayerCount}, Version:{Old.MinecraftVersion}]");
 	}
 }
