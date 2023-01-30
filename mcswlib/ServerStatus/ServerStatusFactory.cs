@@ -29,6 +29,8 @@ public class ServerStatusFactory : IDisposable
 	Task? _updateTask;
         
 	public EventMessages Messages { get; }
+	
+	public bool AlwaysInvokeAsyncEvent { get; set; }
 
 	public bool AutoUpdating => _updateTask is { IsCompleted: false };
 
@@ -174,7 +176,7 @@ public class ServerStatusFactory : IDisposable
 			_states.ForEach(ss =>
 			{
 				var evts = ss.Update();
-				if (evts.Length > 0 && ServerChanged is not null) ServerChanged(ss, evts);
+				if ((AlwaysInvokeAsyncEvent || evts.Length > 0) && ServerChanged is not null) ServerChanged(ss, evts);
 			});
 			await Task.Delay(secInterval * 1000, token);
 		}
