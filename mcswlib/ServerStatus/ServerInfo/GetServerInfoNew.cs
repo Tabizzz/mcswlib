@@ -44,19 +44,19 @@ internal class GetServerInfoNew : GetServerInfo
 		Flush(ct, writeBuffer, stream, 0);
 
 		var readBuffer = new byte[BufferSize];
-		var readSize = -1;
-		var bytesRead = 0;
-		while (readSize != 0)
+		var readLen = await stream.ReadAsync(readBuffer.AsMemory(0, BufferSize), ct);
+		var packetLength = ReadVarInt(ref offset, readBuffer);
+		
+		while (readLen < packetLength)
 		{
-			readSize = await stream.ReadAsync(readBuffer.AsMemory(bytesRead, readBuffer.Length - bytesRead), ct);
-			bytesRead += readSize;
+			var read = await stream.ReadAsync(readBuffer.AsMemory(readLen, BufferSize - readLen), ct);
+			readLen += read;
 		}
 		// done
 		stream.Close();
 		client.Close();
 		pingTime.Stop();
 		// IF an IOException arises here, thie server is probably not a minecraft-one
-		_ = ReadVarInt(ref offset, readBuffer);
 		_ = ReadVarInt(ref offset, readBuffer);
 		var jsonLength = ReadVarInt(ref offset, readBuffer);
 		var json = ReadString(ref offset, readBuffer, jsonLength);
