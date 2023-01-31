@@ -40,7 +40,7 @@ public class ServerStatusFactory : IDisposable
 	/// <summary>
 	///     NOTE: This event may only be triggered when running in Auto-Update mode!
 	/// </summary>
-	public event EventHandler<EventBase[]>? ServerChanged;
+	public EventHandler<EventBase[]>? ServerChanged { get; set; }
 
 	/// <summary>
 	///     Start Auto-updating the servers with given Interval
