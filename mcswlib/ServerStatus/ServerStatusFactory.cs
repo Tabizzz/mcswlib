@@ -84,7 +84,7 @@ public class ServerStatusFactory : IDisposable
 		if (_updaters.Count <= 0)
 			return;
 
-		foreach (var batch in  _updaters.Batch(5))
+		foreach (var batch in  _updaters.ToArray().Batch(5))
 			await Task.WhenAll(batch.Select(u => u.Ping(timeOut)));
 
 	}
@@ -170,15 +170,24 @@ public class ServerStatusFactory : IDisposable
 	/// <param name="token"></param>
 	async Task AutoUpdater(int secInterval, CancellationToken token)
 	{
-		while (!token.IsCancellationRequested)
+		try
 		{
-			await PingAll();
-			_states.ForEach(ss =>
+			while (!token.IsCancellationRequested)
 			{
-				var evts = ss.Update();
-				if ((AlwaysInvokeAsyncEvent || evts.Length > 0) && ServerChanged is not null) ServerChanged(ss, evts);
-			});
-			await Task.Delay(secInterval * 1000, token);
+				await PingAll();
+				_states.ForEach(ss =>
+				{
+					var evts = ss.Update();
+					if ((AlwaysInvokeAsyncEvent || evts.Length > 0) && ServerChanged is not null) ServerChanged(ss, evts);
+				});
+				await Task.Delay(secInterval * 1000, token);
+			}
+		}
+		catch(TaskCanceledException)
+		{}
+		catch (Exception)
+		{
+			StartAutoUpdate(secInterval);
 		}
 	}
 
